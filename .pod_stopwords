@@ -34,6 +34,7 @@ backtick
 basename
 Baugh
 bugtracker
+callee
 checksummed
 checksumming
 CHECKSUMS
@@ -157,11 +158,13 @@ passwordless
 PCI
 PCIe
 PEM
+perl
 perlcritic
 perltidy
 PKI
 plaintext
 POSIX
+postfix
 pragmas
 preflight
 proxied

@@ -4,3 +4,8 @@
 runtime:
   requires:
     perl: '5.014'
+  # The policy does not load them.  It leaves to them what they report, so that
+  # the three together cover a $_ that is an alias to the caller's data.
+  recommends:
+    Perl::Critic::Policy::ControlStructures::ProhibitMutatingListFunctionsStricter: '0.001'
+    Perl::Critic::Policy::Variables::ProhibitTopicIterator: '0.001004'
