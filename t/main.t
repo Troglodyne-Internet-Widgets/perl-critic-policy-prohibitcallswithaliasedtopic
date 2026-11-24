@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!perl
 use strict;
 use warnings FATAL => 'all';
 
@@ -211,7 +211,10 @@ is( scalar $funcs->critique( \q{my @r = map { f($_) } @x;} ), 1, 'and the defaul
         close($fh) or die "$root/$name: $!";
     }
 
-    my @lines = map { $_->line_number } $critic->critique("$root/lib/Some/Uses.pm");
+    my @lines;
+    foreach my $violation ( $critic->critique("$root/lib/Some/Uses.pm") ) {
+        push @lines, $violation->line_number;
+    }
     is_deeply( \@lines, [ 4, 5 ], 'another file: a sub of the distribution is left alone in a block, a sub of none is not, and a postfix for counts both' );
 }
 
@@ -223,9 +226,15 @@ SKIP: {
 
     my $both_profile = "[Variables::ProhibitCallsWithAliasedTopic]\n[ControlStructures::ProhibitMutatingListFunctionsStricter]\n";
     my $both         = Perl::Critic->new( -profile => \$both_profile, -only => 1, -severity => 1 );
-    my @seen         = map { $_->policy } $both->critique( \q{sub trim { s/\s+\z//; return } my @t = map { trim(); $_ } @lines;} );
+    my @seen;
+    foreach my $violation ( $both->critique( \q{sub trim { s/\s+\z//; return } my @t = map { trim(); $_ } @lines;} ) ) {
+        push @seen, $violation->policy;
+    }
     is_deeply( \@seen, [$stricter], 'a sub of this file that changes $_ is reported by that policy alone' );
-    @seen = map { $_->policy } $both->critique( \q{my @t = map { trim(); $_ } @lines;} );
+    @seen = ();
+    foreach my $violation ( $both->critique( \q{my @t = map { trim(); $_ } @lines;} ) ) {
+        push @seen, $violation->policy;
+    }
     is_deeply( \@seen, ['Perl::Critic::Policy::Variables::ProhibitCallsWithAliasedTopic'], 'a sub that neither can read is reported by this one alone' );
 }
 
