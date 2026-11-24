@@ -8,8 +8,9 @@ use warnings FATAL => 'all';
 use 5.014;
 
 use re '/aa';
+no autovivification;
 
-use List::Util qw{ any first };
+use List::Util qw{ any };
 use Readonly;
 use Scalar::Util qw{ refaddr };
 
@@ -356,7 +357,12 @@ sub _own_children {
         return @children;
     }
     if ( $node->isa('PPI::Statement') ) {
-        my $postfix = first { $_->isa('PPI::Token::Word') && $LOOP{ $_->content } && $_ != $children[0] } @children;
+        my $postfix;
+        foreach my $child (@children) {
+            next if !$child->isa('PPI::Token::Word') || !$LOOP{ $child->content } || $child == $children[0];
+            $postfix = $child;
+            last;
+        }
         if ($postfix) {
             return grep { !_is_before( $_, $postfix ) } @children;
         }
@@ -391,7 +397,7 @@ sub _is_call {
         return   if $self->{_allow}{$name};
         return 1 if is_method_call($elem);
         return   if !is_function_call($elem) || $self->{_all_list_funcs}{$name};
-        ( my $core = $name ) =~ s/\ACORE::(?:GLOBAL::)?//xms;
+        ( my $core = $name ) =~ s/\ACORE::(?:GLOBAL::)?//xs;
         return if is_perl_builtin($core);
         return !$known->{ bare_name($name) };
     }
@@ -423,7 +429,8 @@ sub known_subs {
     my $last = $self->{_known};
     return $last->{subs} if $last && refaddr( $last->{doc} ) == refaddr($doc);
 
-    my %subs = map { $_ => 1 } sub_names_in($doc);
+    my %subs;
+    $subs{$_} = 1 for sub_names_in($doc);
 
     my $filename = $doc->filename;
     if ( my $dist = defined $filename && Perl::Critic::Distribution->for_file($filename) ) {
@@ -447,7 +454,12 @@ L<Perl::Critic::Document>, lexical ones too, without their package.
 
 sub sub_names_in {
     my ($ppi) = @_;
-    return map { bare_name( $_->name ) } grep { defined $_->name } @{ $ppi->find('PPI::Statement::Sub') || [] };
+    my @names;
+    foreach my $sub ( @{ $ppi->find('PPI::Statement::Sub') || [] } ) {
+        my $name = $sub->name;
+        push @names, bare_name($name) if defined $name;
+    }
+    return @names;
 }
 
 =head3 bare_name
